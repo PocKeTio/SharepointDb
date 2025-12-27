@@ -1,0 +1,11 @@
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+_ReSharper*/
+*.DotSettings.user
