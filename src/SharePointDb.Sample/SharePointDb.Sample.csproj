@@ -9,6 +9,7 @@
     <ProjectReference Include="..\SharePointDb.Core\SharePointDb.Core.csproj" />
     <ProjectReference Include="..\SharePointDb.Auth.WinForms\SharePointDb.Auth.WinForms.csproj" />
     <ProjectReference Include="..\SharePointDb.SharePoint\SharePointDb.SharePoint.csproj" />
+    <ProjectReference Include="..\SharePointDb.Access\SharePointDb.Access.csproj" />
     <ProjectReference Include="..\SharePointDb.Sqlite\SharePointDb.Sqlite.csproj" />
     <ProjectReference Include="..\SharePointDb.Sync\SharePointDb.Sync.csproj" />
   </ItemGroup>

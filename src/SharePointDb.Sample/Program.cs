@@ -34,7 +34,29 @@ namespace SharePointDb.Sample
             }
 
             var appId = GetArg(args, "--appId") ?? GetArg(args, "-a") ?? "APP";
-            var sqlite = GetArg(args, "--sqlite") ?? GetArg(args, "-db") ?? "SharePointDb.Sample.sqlite";
+            var localDbKindText = (GetArg(args, "--dbkind") ?? GetArg(args, "--kind") ?? "sqlite").Trim();
+            var localDbFilePath = GetArg(args, "--dbfile")
+                ?? GetArg(args, "--sqlite")
+                ?? GetArg(args, "--access")
+                ?? GetArg(args, "-db");
+
+            LocalDbKind localDbKind;
+            if (string.Equals(localDbKindText, "access", StringComparison.OrdinalIgnoreCase) || string.Equals(localDbKindText, "accdb", StringComparison.OrdinalIgnoreCase) || string.Equals(localDbKindText, "mdb", StringComparison.OrdinalIgnoreCase))
+            {
+                localDbKind = LocalDbKind.Access;
+            }
+            else
+            {
+                localDbKind = LocalDbKind.Sqlite;
+            }
+
+            if (string.IsNullOrWhiteSpace(localDbFilePath))
+            {
+                localDbFilePath = localDbKind == LocalDbKind.Access
+                    ? "SharePointDb.Sample.accdb"
+                    : "SharePointDb.Sample.sqlite";
+            }
+
             var cmd = (GetArg(args, "--cmd") ?? GetArg(args, "-c") ?? "sync-on-open").Trim();
 
             var entity = GetArg(args, "--entity") ?? GetArg(args, "-e");
@@ -52,7 +74,7 @@ namespace SharePointDb.Sample
             var siteUri = new Uri(siteUrl, UriKind.Absolute);
 
             var cookieProvider = new WebView2CookieProvider();
-            var options = new SharePointDbClientOptions(siteUri, appId, sqlite);
+            var options = new SharePointDbClientOptions(siteUri, appId, localDbKind, localDbFilePath);
 
             using (var client = new SharePointDbClient(options, cookieProvider))
             {
@@ -194,7 +216,8 @@ namespace SharePointDb.Sample
         private static void PrintUsage()
         {
             Console.Error.WriteLine("Usage:");
-            Console.Error.WriteLine("  SharePointDb.Sample --site <https://sharepoint/site/> [--appId <APP>] [--sqlite <file>] --cmd <cmd> [args]");
+            Console.Error.WriteLine("  SharePointDb.Sample --site <https://sharepoint/site/> [--appId <APP>] [--dbkind <sqlite|access>] [--dbfile <file>] --cmd <cmd> [args]");
+            Console.Error.WriteLine("  Backward compatible: [--sqlite <file>] and [-db <file>] still work as aliases for --dbfile");
             Console.Error.WriteLine("Cmd:");
             Console.Error.WriteLine("  config");
             Console.Error.WriteLine("  sync-on-open");

@@ -11,5 +11,6 @@
     <ProjectReference Include="..\SharePointDb.SharePoint\SharePointDb.SharePoint.csproj" />
     <ProjectReference Include="..\SharePointDb.Sqlite\SharePointDb.Sqlite.csproj" />
     <ProjectReference Include="..\SharePointDb.Sync\SharePointDb.Sync.csproj" />
+    <ProjectReference Include="..\SharePointDb.Access\SharePointDb.Access.csproj" />
   </ItemGroup>
 </Project>

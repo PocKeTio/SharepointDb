@@ -29,17 +29,43 @@ namespace SharePointDb.Migration
             var siteUrl = GetArg(args, "--site") ?? GetArg(args, "-s");
             if (string.IsNullOrWhiteSpace(siteUrl))
             {
-                Console.Error.WriteLine("Usage: SharePointDb.Migration --site <https://sharepoint/site/> [--appId <APP>] ");
+                Console.Error.WriteLine("Usage: SharePointDb.Migration --site <https://sharepoint/site/> [--appId <APP>] [--cmd provision|access-import]");
+                Console.Error.WriteLine("  access-import args: --access <file.accdb> --table <TableName> [--entity <EntityName>] [--pk <ColumnName>] [--max <N>]");
                 return 2;
             }
 
             var appId = GetArg(args, "--appId") ?? GetArg(args, "-a") ?? "APP";
+            var cmd = GetArg(args, "--cmd") ?? GetArg(args, "-c") ?? "provision";
 
             var siteUri = new Uri(siteUrl, UriKind.Absolute);
 
             var cookieProvider = new WebView2CookieProvider();
             var connector = new SharePointRestConnector(new SharePointRestConnectorOptions(siteUri), cookieProvider);
 
+            var systemLists = await EnsureSystemListsAsync(connector, appId, cancellationToken).ConfigureAwait(false);
+
+            if (string.Equals(cmd, "access-import", StringComparison.OrdinalIgnoreCase))
+            {
+                await AccessImportCommand.RunAsync(connector, systemLists.ConfigListId, systemLists.TablesListId, appId, args, cancellationToken).ConfigureAwait(false);
+            }
+            else if (!string.Equals(cmd, "provision", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.Error.WriteLine($"Unknown --cmd '{cmd}'.");
+                return 2;
+            }
+
+            Console.WriteLine("Done.");
+            return 0;
+        }
+
+        private sealed class SystemLists
+        {
+            public Guid ConfigListId { get; set; }
+            public Guid TablesListId { get; set; }
+        }
+
+        private static async Task<SystemLists> EnsureSystemListsAsync(SharePointRestConnector connector, string appId, CancellationToken cancellationToken)
+        {
             Console.WriteLine("Ensuring lists...");
 
             var configListId = await connector.EnsureListAsync("APP_Config", "SharePointDb configuration", baseTemplate: 100, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -68,8 +94,11 @@ namespace SharePointDb.Migration
             Console.WriteLine("Seeding initial APP_Config entry...");
             await EnsureAppConfigRowAsync(connector, configListId, appId, cancellationToken).ConfigureAwait(false);
 
-            Console.WriteLine("Done.");
-            return 0;
+            return new SystemLists
+            {
+                ConfigListId = configListId,
+                TablesListId = tablesListId
+            };
         }
 
         private static async Task EnsureAppConfigRowAsync(SharePointRestConnector connector, Guid listId, string appId, CancellationToken cancellationToken)

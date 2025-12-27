@@ -16,6 +16,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharePointDb.Migration", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharePointDb.Sample", "src\SharePointDb.Sample\SharePointDb.Sample.csproj", "{8F6C7A6E-7B8E-4F4B-9C8F-3C2B3F5A9C6D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharePointDb.Access", "src\SharePointDb.Access\SharePointDb.Access.csproj", "{D1D9F2C1-60B6-4A9F-9F6F-4C3B4CEB1C92}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,10 @@ Global
 		{8F6C7A6E-7B8E-4F4B-9C8F-3C2B3F5A9C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F6C7A6E-7B8E-4F4B-9C8F-3C2B3F5A9C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F6C7A6E-7B8E-4F4B-9C8F-3C2B3F5A9C6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1D9F2C1-60B6-4A9F-9F6F-4C3B4CEB1C92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1D9F2C1-60B6-4A9F-9F6F-4C3B4CEB1C92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1D9F2C1-60B6-4A9F-9F6F-4C3B4CEB1C92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1D9F2C1-60B6-4A9F-9F6F-4C3B4CEB1C92}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -2,9 +2,20 @@ using System;
 
 namespace SharePointDb.Sample
 {
+    public enum LocalDbKind
+    {
+        Sqlite = 0,
+        Access = 1
+    }
+
     public sealed class SharePointDbClientOptions
     {
         public SharePointDbClientOptions(Uri siteUri, string appId, string sqliteFilePath)
+            : this(siteUri, appId, LocalDbKind.Sqlite, sqliteFilePath)
+        {
+        }
+
+        public SharePointDbClientOptions(Uri siteUri, string appId, LocalDbKind localDbKind, string localDbFilePath)
         {
             if (siteUri == null)
             {
@@ -21,20 +32,23 @@ namespace SharePointDb.Sample
                 throw new ArgumentException("AppId is required.", nameof(appId));
             }
 
-            if (string.IsNullOrWhiteSpace(sqliteFilePath))
+            if (string.IsNullOrWhiteSpace(localDbFilePath))
             {
-                throw new ArgumentException("SQLite file path is required.", nameof(sqliteFilePath));
+                throw new ArgumentException("Local DB file path is required.", nameof(localDbFilePath));
             }
 
             SiteUri = siteUri;
             AppId = appId;
-            SqliteFilePath = sqliteFilePath;
+            LocalDbKind = localDbKind;
+            LocalDbFilePath = localDbFilePath;
         }
 
         public Uri SiteUri { get; }
 
         public string AppId { get; }
 
-        public string SqliteFilePath { get; }
+        public LocalDbKind LocalDbKind { get; }
+
+        public string LocalDbFilePath { get; }
     }
 }

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SharePointDb.Access;
 using SharePointDb.Core;
 using SharePointDb.SharePoint;
 using SharePointDb.Sqlite;
@@ -14,7 +15,8 @@ namespace SharePointDb.Sample
     public sealed class SharePointDbClient : IDisposable
     {
         private readonly SharePointDbClientOptions _options;
-        private readonly SqliteLocalStore _localStore;
+        private readonly ILocalStore _localStore;
+        private readonly ILocalEntityStore _localEntityStore;
         private readonly SharePointRestConnector _connector;
         private readonly SharePointConfigurationManager _configurationManager;
         private readonly SharePointSyncEngine _syncEngine;
@@ -33,12 +35,21 @@ namespace SharePointDb.Sample
                 throw new ArgumentNullException(nameof(cookieProvider));
             }
 
-            EnsureDirectoryExists(_options.SqliteFilePath);
+            EnsureDirectoryExists(_options.LocalDbFilePath);
 
-            _localStore = new SqliteLocalStore(_options.SqliteFilePath);
+            if (_options.LocalDbKind == LocalDbKind.Access)
+            {
+                _localStore = new AccessLocalStore(_options.LocalDbFilePath);
+            }
+            else
+            {
+                _localStore = new SqliteLocalStore(_options.LocalDbFilePath);
+            }
+
+            _localEntityStore = (ILocalEntityStore)_localStore;
             _connector = new SharePointRestConnector(new SharePointRestConnectorOptions(_options.SiteUri), cookieProvider);
             _configurationManager = new SharePointConfigurationManager(_connector, _localStore);
-            _syncEngine = new SharePointSyncEngine(_connector, _localStore, _localStore);
+            _syncEngine = new SharePointSyncEngine(_connector, _localStore, _localEntityStore);
         }
 
         public async Task InitializeAsync(CancellationToken cancellationToken = default(CancellationToken))
@@ -101,7 +112,7 @@ namespace SharePointDb.Sample
 
         public Task<LocalEntityRow> GetLocalAsync(string entityName, string appPk, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return _localStore.GetEntityAsync(entityName, appPk, cancellationToken);
+            return _localEntityStore.GetEntityAsync(entityName, appPk, cancellationToken);
         }
 
         public async Task UpsertLocalAndEnqueueInsertAsync(
@@ -114,7 +125,7 @@ namespace SharePointDb.Sample
             var payload = SanitizePayload(table, fields);
             var localPayload = FilterPayloadForLocalMirror(table, payload);
 
-            var existing = await _localStore.GetEntityAsync(entityName, appPk, cancellationToken).ConfigureAwait(false);
+            var existing = await _localEntityStore.GetEntityAsync(entityName, appPk, cancellationToken).ConfigureAwait(false);
 
             var mergedFields = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (existing?.Fields != null)
@@ -130,7 +141,7 @@ namespace SharePointDb.Sample
                 mergedFields[kvp.Key] = kvp.Value;
             }
 
-            await _localStore.UpsertEntityAsync(entityName, appPk, mergedFields, existing?.System ?? new LocalEntitySystemFields(), cancellationToken).ConfigureAwait(false);
+            await _localEntityStore.UpsertEntityAsync(entityName, appPk, mergedFields, existing?.System ?? new LocalEntitySystemFields(), cancellationToken).ConfigureAwait(false);
 
             await _localStore.EnqueueChangeAsync(new ChangeLogEntry
             {
@@ -154,7 +165,7 @@ namespace SharePointDb.Sample
             var payload = SanitizePayload(table, fields);
             var localPayload = FilterPayloadForLocalMirror(table, payload);
 
-            var existing = await _localStore.GetEntityAsync(entityName, appPk, cancellationToken).ConfigureAwait(false);
+            var existing = await _localEntityStore.GetEntityAsync(entityName, appPk, cancellationToken).ConfigureAwait(false);
 
             var mergedFields = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (existing?.Fields != null)
@@ -170,7 +181,7 @@ namespace SharePointDb.Sample
                 mergedFields[kvp.Key] = kvp.Value;
             }
 
-            await _localStore.UpsertEntityAsync(entityName, appPk, mergedFields, existing?.System ?? new LocalEntitySystemFields(), cancellationToken).ConfigureAwait(false);
+            await _localEntityStore.UpsertEntityAsync(entityName, appPk, mergedFields, existing?.System ?? new LocalEntitySystemFields(), cancellationToken).ConfigureAwait(false);
 
             await _localStore.EnqueueChangeAsync(new ChangeLogEntry
             {
@@ -191,14 +202,14 @@ namespace SharePointDb.Sample
         {
             await EnsureTableSchemaAsync(entityName, cancellationToken).ConfigureAwait(false);
 
-            var existing = await _localStore.GetEntityAsync(entityName, appPk, cancellationToken).ConfigureAwait(false);
+            var existing = await _localEntityStore.GetEntityAsync(entityName, appPk, cancellationToken).ConfigureAwait(false);
             var fields = existing?.Fields ?? new Dictionary<string, object>();
             var system = existing?.System ?? new LocalEntitySystemFields();
 
             system.IsDeleted = true;
             system.DeletedAtUtc = DateTime.UtcNow;
 
-            await _localStore.UpsertEntityAsync(entityName, appPk, fields, system, cancellationToken).ConfigureAwait(false);
+            await _localEntityStore.UpsertEntityAsync(entityName, appPk, fields, system, cancellationToken).ConfigureAwait(false);
 
             await _localStore.EnqueueChangeAsync(new ChangeLogEntry
             {
@@ -239,7 +250,7 @@ namespace SharePointDb.Sample
             var config = await EnsureConfigCoreAsync(cancellationToken).ConfigureAwait(false);
             var table = FindTableOrThrow(config, entityName);
 
-            await _localStore.EnsureEntitySchemaAsync(table, cancellationToken).ConfigureAwait(false);
+            await _localEntityStore.EnsureEntitySchemaAsync(table, cancellationToken).ConfigureAwait(false);
             return table;
         }
 
@@ -277,9 +288,9 @@ namespace SharePointDb.Sample
             }
         }
 
-        private static void EnsureDirectoryExists(string sqliteFilePath)
+        private static void EnsureDirectoryExists(string localDbFilePath)
         {
-            var full = Path.GetFullPath(sqliteFilePath);
+            var full = Path.GetFullPath(localDbFilePath);
             var dir = Path.GetDirectoryName(full);
 
             if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
